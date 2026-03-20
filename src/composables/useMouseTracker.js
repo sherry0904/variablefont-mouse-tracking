@@ -93,17 +93,24 @@ export function useMouseTracker() {
       cur.ty   = lerp(cur.ty,   tTy,   LF);
       cur.rot  = lerp(cur.rot,  tRot,  LF);
 
-      // --- Apply to DOM ---
+      // --- Apply to DOM (only when values changed enough to see) ---
       const el = c.element;
-      el.style.transform = `translate(calc(-50% + ${cur.tx.toFixed(1)}px), calc(-50% + ${cur.ty.toFixed(1)}px)) rotate(${cur.rot.toFixed(2)}deg)`;
-      el.style.setProperty('--wght', cur.wght.toFixed(0));
-      el.style.setProperty('--wdth', cur.wdth.toFixed(1));
-      el.style.setProperty('--GRAD', cur.GRAD.toFixed(1));
-      el.style.setProperty('--slnt', cur.slnt.toFixed(2));
-      el.style.setProperty('--XOPQ', cur.XOPQ.toFixed(1));
-      el.style.setProperty('--YOPQ', cur.YOPQ.toFixed(1));
-      el.style.setProperty('--XTRA', cur.XTRA.toFixed(0));
-      el.style.setProperty('--opsz', cur.opsz.toFixed(1));
+      const newTransform = `translate(calc(-50% + ${cur.tx.toFixed(1)}px), calc(-50% + ${cur.ty.toFixed(1)}px)) rotate(${cur.rot.toFixed(2)}deg)`;
+      el.style.transform = newTransform;
+
+      // Font variation is expensive; skip if change is sub-pixel
+      const wghtChanged = Math.abs(cur.wght - (c._prevWght || 0)) > 1;
+      if (wghtChanged) {
+        c._prevWght = cur.wght;
+        el.style.setProperty('--wght', cur.wght.toFixed(0));
+        el.style.setProperty('--wdth', cur.wdth.toFixed(1));
+        el.style.setProperty('--GRAD', cur.GRAD.toFixed(1));
+        el.style.setProperty('--slnt', cur.slnt.toFixed(2));
+        el.style.setProperty('--XOPQ', cur.XOPQ.toFixed(1));
+        el.style.setProperty('--YOPQ', cur.YOPQ.toFixed(1));
+        el.style.setProperty('--XTRA', cur.XTRA.toFixed(0));
+        el.style.setProperty('--opsz', cur.opsz.toFixed(1));
+      }
     });
 
     animationFrameId = requestAnimationFrame(tick);

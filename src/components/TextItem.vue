@@ -28,6 +28,8 @@ defineProps({
   user-select: none;
   white-space: nowrap;
   line-height: 1;
+  /* GPU layer hint for smooth 60fps animation */
+  will-change: transform, font-variation-settings;
 
   /* use Roboto Flex Variable (local fontsource) */
   font-family: 'Roboto Flex Variable', 'Roboto Flex', sans-serif;
