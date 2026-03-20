@@ -42,7 +42,7 @@ function tooClose(x, y, sz) {
   return false;
 }
 
-const TARGET = 90; // desired number of letters — denser for visual richness
+const TARGET = 60; // 60 letters keeps screen full but cuts GPU re-rasterize load by 33%
 const MAX_ATTEMPTS = 20000;
 let attempts = 0;
 

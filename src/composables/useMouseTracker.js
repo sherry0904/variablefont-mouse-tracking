@@ -8,6 +8,7 @@ export function useMouseTracker() {
   let mouseX = -9999;
   let mouseY = -9999;
   let resizeTimeout;
+  let frameCount = 0;
 
   const calculateBounds = (container) => {
     elementsCache = [];
@@ -46,10 +47,13 @@ export function useMouseTracker() {
     mouseY = e.clientY;
   };
 
-  const tick = () => {
-    const t = Date.now() / 1000;
-    const LF = 0.12;
-    const RADIUS = 450;
+  const tick = (timestamp) => {
+    const t = timestamp / 1000;
+    const dt = Math.min(timestamp - (tick._last || timestamp), 50) / 1000;
+    tick._last = timestamp;
+    const LF = 1 - Math.pow(1 - 0.85, dt * 60);
+    const RADIUS = 420;
+    frameCount++;
 
     elementsCache.forEach((c) => {
       const dx = mouseX - c.baseX;
@@ -98,9 +102,10 @@ export function useMouseTracker() {
       const newTransform = `translate(calc(-50% + ${cur.tx.toFixed(1)}px), calc(-50% + ${cur.ty.toFixed(1)}px)) rotate(${cur.rot.toFixed(2)}deg)`;
       el.style.transform = newTransform;
 
-      // Font variation is expensive; skip if change is sub-pixel
-      const wghtChanged = Math.abs(cur.wght - (c._prevWght || 0)) > 1;
-      if (wghtChanged) {
+      // Update font-variation-settings every 2nd frame to halve GPU re-rasterize cost
+      const shouldUpdateFont = (frameCount % 2 === 0);
+      const wghtChanged = Math.abs(cur.wght - (c._prevWght || 0)) > 4;
+      if (shouldUpdateFont && wghtChanged) {
         c._prevWght = cur.wght;
         el.style.setProperty('--wght', cur.wght.toFixed(0));
         el.style.setProperty('--wdth', cur.wdth.toFixed(1));
