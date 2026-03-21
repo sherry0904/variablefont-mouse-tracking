@@ -2,6 +2,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import TextItem from './TextItem.vue';
 import { useMouseTracker } from '../composables/useMouseTracker';
+import { appConfig } from '../config/appConfig';
 
 const containerRef = ref(null);
 
@@ -15,9 +16,14 @@ const chars = [
 // --- Weighted size: mix many medium with a few large ---
 function randomSize() {
   const r = Math.random();
-  if (r < 0.25) return 2.4 + Math.random() * 1.2;   // small:  2.4–3.6 rem
-  if (r < 0.75) return 3.8 + Math.random() * 2.2;   // medium: 3.8–6.0 rem
-  return 6.0 + Math.random() * 3.0;                  // large:  6.0–9.0 rem
+  const s = appConfig.scatter.size;
+  
+  if (r < s.small.chance) 
+    return s.small.min + Math.random() * (s.small.max - s.small.min);
+  if (r < s.small.chance + s.medium.chance) 
+    return s.medium.min + Math.random() * (s.medium.max - s.medium.min);
+  
+  return s.large.min + Math.random() * (s.large.max - s.large.min);
 }
 
 // Pseudo-Poisson disk: generate candidate positions and reject those that are
@@ -27,7 +33,7 @@ const placed = [];
 const items  = [];
 let   idStr  = 0;
 
-const MIN_DIST_REM = 0.55; // tighter gap — letters can breathe but pack better
+const MIN_DIST_REM = appConfig.scatter.minDistRem;
 
 function tooClose(x, y, sz) {
   for (const p of placed) {
@@ -42,8 +48,8 @@ function tooClose(x, y, sz) {
   return false;
 }
 
-const TARGET = 60; // 60 letters keeps screen full but cuts GPU re-rasterize load by 33%
-const MAX_ATTEMPTS = 20000;
+const TARGET = appConfig.scatter.targetCount;
+const MAX_ATTEMPTS = 50000;
 let attempts = 0;
 
 // Padding from edges (in %)

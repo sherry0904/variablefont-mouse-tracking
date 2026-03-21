@@ -1,4 +1,5 @@
 import { fontConfig } from '../config/fontConfig';
+import { appConfig } from '../config/appConfig';
 
 const lerp = (a, b, t) => a + (b - a) * t;
 
@@ -37,6 +38,8 @@ export function useMouseTracker() {
           tx: 0,
           ty: 0,
           rot: 0,
+          vx: 0,
+          vy: 0,
         },
       });
     });
@@ -52,7 +55,8 @@ export function useMouseTracker() {
     const dt = Math.min(timestamp - (tick._last || timestamp), 50) / 1000;
     tick._last = timestamp;
     const LF = 1 - Math.pow(1 - 0.85, dt * 60);
-    const RADIUS = 420;
+    const pConfig = appConfig.physics;
+    const RADIUS = pConfig.interactionRadius;
     frameCount++;
 
     elementsCache.forEach((c) => {
@@ -60,14 +64,16 @@ export function useMouseTracker() {
       const dy = mouseY - c.baseY;
       const dist = Math.sqrt(dx * dx + dy * dy);
       const norm = Math.min(dist / RADIUS, 1);
-      const power = Math.pow(1 - norm, 2.5); // ease-in curve
+      const power = Math.pow(1 - norm, 1.8); // ease-in curve, made softer so effect is wider
 
       // --- Idle breathing ---
-      const breath = Math.sin(t * 0.6 + c.seed);
-      const idleWght = 300 + breath * 80;
-      const idleWdth = 90 + breath * 8;
-      const idleTx = Math.cos(t * 0.4 + c.seed * 1.3) * 5;
-      const idleTy = Math.sin(t * 0.4 + c.seed) * 8;
+      const breath = Math.sin(t * pConfig.idle.breathingSpeed + c.seed);
+      const idleWght = 300 + breath * pConfig.idle.breathingWeight;
+      const idleWdth = 90 + breath * pConfig.idle.breathingWidth;
+      const idleTx = Math.cos(t * pConfig.idle.movementSpeedX + c.seed * 1.3) * pConfig.idle.movementAmplitudeX;
+      const idleTy = Math.sin(t * pConfig.idle.movementSpeedY + c.seed) * pConfig.idle.movementAmplitudeY;
+      const idleRot = Math.sin(t * pConfig.idle.rotationSpeed + c.seed * 2.1) * pConfig.idle.rotationAmplitude;
+      const idleSlnt = Math.cos(t * pConfig.idle.rotationSpeed * 1.2 + c.seed) * pConfig.idle.slantAmplitude;
 
       // --- Interaction targets ---
       const tWght = idleWght + power * 700;   // up to 1000
@@ -78,12 +84,13 @@ export function useMouseTracker() {
       const tXTRA = 468 - power * (468 - 323); // shrink counters
       const tOpsz = 14 + power * (144 - 14);  // max optical size
 
-      const tTx = idleTx + dx * power * 0.7;
-      const tTy = idleTy + dy * power * 0.7;
-      const tSlnt = -Math.min(Math.abs(dx / RADIUS * 10 * power), 10); // slant toward mouse
-      const tRot = (dx + dy) * 0.08 * power; // swirl
+      const targetTx = idleTx + dx * power * pConfig.magneticForce;
+      const targetTy = idleTy + dy * power * pConfig.magneticForce;
+      
+      const tSlnt = idleSlnt - Math.min(Math.abs(dx / RADIUS * 15 * power), 10); // slant toward mouse
+      const tRot = idleRot + (dx + dy) * 0.12 * power; // swirl
 
-      // --- Lerp all values ---
+      // --- Lerp values and Physics for translation ---
       const cur = c.cur;
       cur.wght = lerp(cur.wght, tWght, LF);
       cur.wdth = lerp(cur.wdth, tWdth, LF);
@@ -93,9 +100,17 @@ export function useMouseTracker() {
       cur.XTRA = lerp(cur.XTRA, tXTRA, LF);
       cur.opsz = lerp(cur.opsz, tOpsz, LF);
       cur.slnt = lerp(cur.slnt, tSlnt, LF);
-      cur.tx   = lerp(cur.tx,   tTx,   LF);
-      cur.ty   = lerp(cur.ty,   tTy,   LF);
       cur.rot  = lerp(cur.rot,  tRot,  LF);
+
+      // Spring physics for position to give a heavier "magnetic" feel
+      const spring = pConfig.spring;
+      const friction = pConfig.friction;
+      cur.vx += (targetTx - cur.tx) * spring;
+      cur.vy += (targetTy - cur.ty) * spring;
+      cur.vx *= friction;
+      cur.vy *= friction;
+      cur.tx += cur.vx;
+      cur.ty += cur.vy;
 
       // --- Apply to DOM (only when values changed enough to see) ---
       const el = c.element;
