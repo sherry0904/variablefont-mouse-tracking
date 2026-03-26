@@ -1,3 +1,11 @@
+@font-face {
+  font-family: 'DFPKingGothicTC1-VF';
+  src: url('./assets/fonts/DFPKingGothicTC1-VF-full.woff2') format('woff2');
+  font-weight: 100 1000;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;

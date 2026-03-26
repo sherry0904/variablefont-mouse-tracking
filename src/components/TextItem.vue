@@ -1,4 +1,6 @@
 <script setup>
+import { fontsDatabase, activeFontId } from '../config/fontConfig';
+
 defineProps({
   char: { type: String, required: true },
   x:    { type: Number, required: true },
@@ -16,6 +18,7 @@ defineProps({
       top: y + '%',
       fontSize: baseSize + 'rem',
       color: color,
+      fontFamily: fontsDatabase[activeFontId].family
     }"
   >{{ char }}</div>
 </template>
@@ -30,28 +33,5 @@ defineProps({
   line-height: 1;
   /* GPU layer hint for smooth 60fps animation */
   will-change: transform, font-variation-settings;
-
-  /* use Roboto Flex Variable (local fontsource) */
-  font-family: 'Roboto Flex Variable', 'Roboto Flex', sans-serif;
-
-  /* CSS variables driven by physics engine */
-  --wght: 400;
-  --wdth: 100;
-  --GRAD: 0;
-  --slnt: 0;
-  --XOPQ: 96;
-  --YOPQ: 79;
-  --XTRA: 468;
-  --opsz: 14;
-
-  font-variation-settings:
-    'wght' var(--wght),
-    'wdth' var(--wdth),
-    'GRAD' var(--GRAD),
-    'slnt' var(--slnt),
-    'XOPQ' var(--XOPQ),
-    'YOPQ' var(--YOPQ),
-    'XTRA' var(--XTRA),
-    'opsz' var(--opsz);
 }
 </style>

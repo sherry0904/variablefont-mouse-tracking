@@ -1,7 +1,5 @@
-import { fontConfig } from '../config/fontConfig';
-import { appConfig } from '../config/appConfig';
-
-const lerp = (a, b, t) => a + (b - a) * t;
+import { fontsDatabase, activeFontId } from '../config/fontConfig';
+import { appConfig } from '../config/appConfig';const lerp = (a, b, t) => a + (b - a) * t;
 
 export function useMouseTracker() {
   let elementsCache = [];
@@ -120,16 +118,47 @@ export function useMouseTracker() {
       // Update font-variation-settings every 2nd frame to halve GPU re-rasterize cost
       const shouldUpdateFont = (frameCount % 2 === 0);
       const wghtChanged = Math.abs(cur.wght - (c._prevWght || 0)) > 4;
+      
       if (shouldUpdateFont && wghtChanged) {
         c._prevWght = cur.wght;
-        el.style.setProperty('--wght', cur.wght.toFixed(0));
-        el.style.setProperty('--wdth', cur.wdth.toFixed(1));
-        el.style.setProperty('--GRAD', cur.GRAD.toFixed(1));
-        el.style.setProperty('--slnt', cur.slnt.toFixed(2));
-        el.style.setProperty('--XOPQ', cur.XOPQ.toFixed(1));
-        el.style.setProperty('--YOPQ', cur.YOPQ.toFixed(1));
-        el.style.setProperty('--XTRA', cur.XTRA.toFixed(0));
-        el.style.setProperty('--opsz', cur.opsz.toFixed(1));
+        const fontConf = fontsDatabase[activeFontId.value];
+        const fvsOpts = [];
+
+        // Safely apply only the axes supported by the current font, clamping to min/max
+        if (fontConf.axes.wght) {
+          const w = Math.max(fontConf.axes.wght.min, Math.min(fontConf.axes.wght.max, cur.wght));
+          fvsOpts.push(`'wght' ${w.toFixed(0)}`);
+        }
+        if (fontConf.axes.wdth) {
+          const w = Math.max(fontConf.axes.wdth.min, Math.min(fontConf.axes.wdth.max, cur.wdth));
+          fvsOpts.push(`'wdth' ${w.toFixed(1)}`);
+        }
+        if (fontConf.axes.GRAD) {
+          const w = Math.max(fontConf.axes.GRAD.min, Math.min(fontConf.axes.GRAD.max, cur.GRAD));
+          fvsOpts.push(`'GRAD' ${w.toFixed(1)}`);
+        }
+        if (fontConf.axes.slnt) {
+          const w = Math.max(fontConf.axes.slnt.min, Math.min(fontConf.axes.slnt.max, cur.slnt));
+          fvsOpts.push(`'slnt' ${w.toFixed(2)}`);
+        }
+        if (fontConf.axes.XOPQ) {
+          const w = Math.max(fontConf.axes.XOPQ.min, Math.min(fontConf.axes.XOPQ.max, cur.XOPQ));
+          fvsOpts.push(`'XOPQ' ${w.toFixed(1)}`);
+        }
+        if (fontConf.axes.YOPQ) {
+          const w = Math.max(fontConf.axes.YOPQ.min, Math.min(fontConf.axes.YOPQ.max, cur.YOPQ));
+          fvsOpts.push(`'YOPQ' ${w.toFixed(1)}`);
+        }
+        if (fontConf.axes.XTRA) {
+          const w = Math.max(fontConf.axes.XTRA.min, Math.min(fontConf.axes.XTRA.max, cur.XTRA));
+          fvsOpts.push(`'XTRA' ${w.toFixed(0)}`);
+        }
+        if (fontConf.axes.opsz) {
+          const w = Math.max(fontConf.axes.opsz.min, Math.min(fontConf.axes.opsz.max, cur.opsz));
+          fvsOpts.push(`'opsz' ${w.toFixed(1)}`);
+        }
+
+        el.style.fontVariationSettings = fvsOpts.join(', ');
       }
     });
 
