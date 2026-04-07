@@ -90,7 +90,7 @@ onUnmounted(() => {
       </div>
 
       <div class="axes-info">
-        <h4>Variation Axes (Detected)</h4>
+        <h4>Variation Axes</h4>
         <div class="axes-list">
           <div v-for="(bounds, axis) in fontsDatabase[activeFontId].axes" :key="axis" class="axis-item">
             <span class="axis-name">{{ axis }}</span>
