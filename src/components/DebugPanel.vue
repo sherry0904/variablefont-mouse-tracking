@@ -1,12 +1,39 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { fontsDatabase, activeFontId } from '../config/fontConfig';
 
 const isOpen = ref(false);
+const isFontSelectorOpen = ref(false);
 
 const togglePanel = () => {
   isOpen.value = !isOpen.value;
+  if (!isOpen.value) isFontSelectorOpen.value = false;
 };
+
+const toggleFontSelector = (e) => {
+  e.stopPropagation();
+  isFontSelectorOpen.value = !isFontSelectorOpen.value;
+};
+
+const selectFont = (id) => {
+  activeFontId.value = id;
+  isFontSelectorOpen.value = false;
+};
+
+// Close dropdown when clicking outside
+const handleClickOutside = (e) => {
+  if (isFontSelectorOpen.value) {
+    isFontSelectorOpen.value = false;
+  }
+};
+
+onMounted(() => {
+  window.addEventListener('click', handleClickOutside);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('click', handleClickOutside);
+});
 </script>
 
 <template>
@@ -35,13 +62,30 @@ const togglePanel = () => {
 
       <div class="control-group">
         <label>Active Typeface</label>
-        <div class="select-wrapper">
-          <select v-model="activeFontId">
-            <option v-for="(config, id) in fontsDatabase" :key="id" :value="id">
-              {{ config.name }}
-            </option>
-          </select>
-          <svg class="dropdown-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        <div class="custom-select" :class="{ 'is-active': isFontSelectorOpen }">
+          <div class="select-trigger" @click="toggleFontSelector">
+            <span class="current-value">{{ fontsDatabase[activeFontId].name }}</span>
+            <svg class="dropdown-icon" :class="{ 'is-rotated': isFontSelectorOpen }" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+          
+          <transition name="dropdown-fade">
+            <div class="dropdown-menu" v-if="isFontSelectorOpen" @click.stop>
+              <div 
+                v-for="(config, id) in fontsDatabase" 
+                :key="id" 
+                class="dropdown-item"
+                :class="{ 'is-selected': activeFontId === id }"
+                @click="selectFont(id)"
+              >
+                <span class="item-name">{{ config.name }}</span>
+                <svg v-if="activeFontId === id" class="check-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </div>
+            </div>
+          </transition>
         </div>
       </div>
 
@@ -173,42 +217,99 @@ const togglePanel = () => {
   letter-spacing: 0.05em;
 }
 
-.select-wrapper {
-  position: relative;
-}
-
-select {
-  appearance: none;
+.select-trigger {
   width: 100%;
   padding: 12px 14px;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #fff;
   font-size: 14px;
   font-weight: 500;
-  border-radius: 10px;
-  outline: none;
+  border-radius: 12px;
   cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-select:hover {
-  background: rgba(255,255,255,0.02);
-  border-color: rgba(255, 255, 255, 0.15);
+.custom-select {
+  position: relative;
+  z-index: 100;
 }
 
-select:focus {
+.custom-select:hover .select-trigger {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.custom-select.is-active .select-trigger {
   border-color: #FF8DA1;
   background: rgba(255, 141, 161, 0.05);
+  box-shadow: 0 0 0 4px rgba(255, 141, 161, 0.1);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 100%;
+  background: rgba(28, 28, 30, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 6px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+.dropdown-item {
+  padding: 10px 12px;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #e5e5e7;
+}
+
+.dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.dropdown-item.is-selected {
+  background: #FF8DA1;
+  color: #000;
+  font-weight: 600;
 }
 
 .dropdown-icon {
-  position: absolute;
-  right: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   color: #86868b;
+}
+
+.dropdown-icon.is-rotated {
+  transform: rotate(180deg);
+  color: #FF8DA1;
+}
+
+.check-icon {
+  opacity: 0.8;
+}
+
+/* Dropdown Transitions */
+.dropdown-fade-enter-active,
+.dropdown-fade-leave-active {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dropdown-fade-enter-from,
+.dropdown-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.98);
 }
 
 .axes-info h4 {
