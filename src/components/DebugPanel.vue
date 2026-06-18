@@ -1,6 +1,13 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
-import { fontsDatabase, activeFontId } from '../config/fontConfig';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { fontsDatabase, activeFontId, isDevMode } from '../config/fontConfig';
+
+// 依 dev 模式過濾可見字型
+const visibleFonts = computed(() =>
+  Object.fromEntries(
+    Object.entries(fontsDatabase).filter(([, cfg]) => isDevMode || !cfg.devOnly)
+  )
+);
 
 const isOpen = ref(false);
 const isFontSelectorOpen = ref(false);
@@ -73,7 +80,7 @@ onUnmounted(() => {
           <transition name="dropdown-fade">
             <div class="dropdown-menu" v-if="isFontSelectorOpen" @click.stop>
               <div 
-                v-for="(config, id) in fontsDatabase" 
+                v-for="(config, id) in visibleFonts" 
                 :key="id" 
                 class="dropdown-item"
                 :class="{ 'is-selected': activeFontId === id }"
