@@ -9,6 +9,16 @@ export const fontsDatabase = {
       wdth: { min: 75, max: 100, default: 100 }
     }
   },
+  'musako': {
+    name: "Musako Variable",
+    family: "'VariablemusakoVF', sans-serif",
+    chars: ['A','D','F','N','O','T','Y','a','d','f','n','o','t','y'],
+    axes: {
+      wght: { min: 100, max: 900, default: 100 }, // 字重
+      wdth: { min: 1,   max: 9,   default: 1   }, // 字寬
+      HIGH: { min: 1,   max: 9,   default: 9   }  // 字高 (特有變化軸)
+    }
+  },
   // 'roboto-flex': {
   //   name: "Roboto Flex Variable",
   //   family: "'Roboto Flex Variable', 'Roboto Flex', sans-serif",
@@ -25,4 +35,4 @@ export const fontsDatabase = {
   // }
 };
 
-export const activeFontId = ref('king-gothic');
+export const activeFontId = ref('musako');

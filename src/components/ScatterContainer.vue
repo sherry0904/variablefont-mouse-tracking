@@ -1,17 +1,14 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, reactive, watch, onMounted, onBeforeUnmount } from 'vue';
 import TextItem from './TextItem.vue';
 import { useMouseTracker } from '../composables/useMouseTracker';
 import { appConfig } from '../config/appConfig';
+import { fontsDatabase, activeFontId } from '../config/fontConfig';
 
 const containerRef = ref(null);
 
-const chars = [
-  'D','Y','N','A','C','O','M','W',
-  'a','r','e','P','k','b','o',
-  'F','l','x','R','t','c','n',
-  'w','m','p','f','y'
-];
+// 優先使用字型自訂的字元子集，否則回退到通用預設集
+const getChars = () => fontsDatabase[activeFontId.value].chars || appConfig.defaultChars;
 
 // --- Weighted size: mix many medium with a few large ---
 function randomSize() {
@@ -56,6 +53,8 @@ let attempts = 0;
 const PAD_X = 4;
 const PAD_Y = 6;
 
+const currentChars = getChars();
+
 while (items.length < TARGET && attempts < MAX_ATTEMPTS) {
   attempts++;
   const sz = randomSize();
@@ -66,13 +65,21 @@ while (items.length < TARGET && attempts < MAX_ATTEMPTS) {
     placed.push({ x, y, sz });
     items.push({
       id: idStr++,
-      char: chars[Math.floor(Math.random() * chars.length)],
+      char: currentChars[Math.floor(Math.random() * currentChars.length)],
       x, y,
       baseSize: sz,
       color: '#FF8DA1',
     });
   }
 }
+
+// 監聽字型標籤改變時，重新分配對應支援的字母給所有的 TextItem
+watch(activeFontId, () => {
+  const newChars = getChars();
+  items.forEach(item => {
+    item.char = newChars[Math.floor(Math.random() * newChars.length)];
+  });
+});
 
 const { initTracker, destroyTracker } = useMouseTracker();
 

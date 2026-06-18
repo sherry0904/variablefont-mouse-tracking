@@ -57,106 +57,59 @@ export function useMouseTracker() {
     const RADIUS = pConfig.interactionRadius;
     frameCount++;
 
+    const fontConf = fontsDatabase[activeFontId.value];
+
     elementsCache.forEach((c) => {
       const dx = mouseX - c.baseX;
       const dy = mouseY - c.baseY;
       const dist = Math.sqrt(dx * dx + dy * dy);
       const norm = Math.min(dist / RADIUS, 1);
-      const power = Math.pow(1 - norm, 1.8); // ease-in curve, made softer so effect is wider
+      const power = Math.pow(1 - norm, 1.8);
 
-      // --- Idle breathing ---
-      const breath = Math.sin(t * pConfig.idle.breathingSpeed + c.seed);
-      const idleWght = 300 + breath * pConfig.idle.breathingWeight;
-      const idleWdth = 90 + breath * pConfig.idle.breathingWidth;
-      const idleTx = Math.cos(t * pConfig.idle.movementSpeedX + c.seed * 1.3) * pConfig.idle.movementAmplitudeX;
-      const idleTy = Math.sin(t * pConfig.idle.movementSpeedY + c.seed) * pConfig.idle.movementAmplitudeY;
+      // --- Idle oscillation (共用於位移與字型變化軸) ---
+      const breath = Math.sin(t * pConfig.idle.breathingSpeed + c.seed); // -1 ~ 1
+
+      // --- 物理位移與旋轉 ---
+      const idleTx  = Math.cos(t * pConfig.idle.movementSpeedX + c.seed * 1.3) * pConfig.idle.movementAmplitudeX;
+      const idleTy  = Math.sin(t * pConfig.idle.movementSpeedY + c.seed) * pConfig.idle.movementAmplitudeY;
       const idleRot = Math.sin(t * pConfig.idle.rotationSpeed + c.seed * 2.1) * pConfig.idle.rotationAmplitude;
-      const idleSlnt = Math.cos(t * pConfig.idle.rotationSpeed * 1.2 + c.seed) * pConfig.idle.slantAmplitude;
-
-      // --- Interaction targets ---
-      const tWght = idleWght + power * 700;   // up to 1000
-      const tWdth = idleWdth + power * 55;    // up to ~151
-      const tGRAD = power * 150;              // up to max grade
-      const tXOPQ = 96 + power * (175 - 96); // max thick stroke
-      const tYOPQ = 79 + power * (135 - 79); // max thin stroke
-      const tXTRA = 468 - power * (468 - 323); // shrink counters
-      const tOpsz = 14 + power * (144 - 14);  // max optical size
 
       const targetTx = idleTx + dx * power * pConfig.magneticForce;
       const targetTy = idleTy + dy * power * pConfig.magneticForce;
-      
-      const tSlnt = idleSlnt - Math.min(Math.abs(dx / RADIUS * 15 * power), 10); // slant toward mouse
-      const tRot = idleRot + (dx + dy) * 0.12 * power; // swirl
+      const tRot     = idleRot + (dx + dy) * 0.12 * power;
 
-      // --- Lerp values and Physics for translation ---
       const cur = c.cur;
-      cur.wght = lerp(cur.wght, tWght, LF);
-      cur.wdth = lerp(cur.wdth, tWdth, LF);
-      cur.GRAD = lerp(cur.GRAD, tGRAD, LF);
-      cur.XOPQ = lerp(cur.XOPQ, tXOPQ, LF);
-      cur.YOPQ = lerp(cur.YOPQ, tYOPQ, LF);
-      cur.XTRA = lerp(cur.XTRA, tXTRA, LF);
-      cur.opsz = lerp(cur.opsz, tOpsz, LF);
-      cur.slnt = lerp(cur.slnt, tSlnt, LF);
-      cur.rot  = lerp(cur.rot,  tRot,  LF);
+      cur.rot = lerp(cur.rot, tRot, LF);
 
-      // Spring physics for position to give a heavier "magnetic" feel
-      const spring = pConfig.spring;
-      const friction = pConfig.friction;
-      cur.vx += (targetTx - cur.tx) * spring;
-      cur.vy += (targetTy - cur.ty) * spring;
-      cur.vx *= friction;
-      cur.vy *= friction;
+      cur.vx += (targetTx - cur.tx) * pConfig.spring;
+      cur.vy += (targetTy - cur.ty) * pConfig.spring;
+      cur.vx *= pConfig.friction;
+      cur.vy *= pConfig.friction;
       cur.tx += cur.vx;
       cur.ty += cur.vy;
 
-      // --- Apply to DOM (only when values changed enough to see) ---
       const el = c.element;
-      const newTransform = `translate(calc(-50% + ${cur.tx.toFixed(1)}px), calc(-50% + ${cur.ty.toFixed(1)}px)) rotate(${cur.rot.toFixed(2)}deg)`;
-      el.style.transform = newTransform;
+      el.style.transform = `translate(calc(-50% + ${cur.tx.toFixed(1)}px), calc(-50% + ${cur.ty.toFixed(1)}px)) rotate(${cur.rot.toFixed(2)}deg)`;
 
-      // Update font-variation-settings every 2nd frame to halve GPU re-rasterize cost
-      const shouldUpdateFont = (frameCount % 2 === 0);
-      const wghtChanged = Math.abs(cur.wght - (c._prevWght || 0)) > 4;
-      
-      if (shouldUpdateFont && wghtChanged) {
-        c._prevWght = cur.wght;
-        const fontConf = fontsDatabase[activeFontId.value];
+      // --- 動態字型變化軸 (每 2 frame 更新一次以降低 GPU 負擔) ---
+      if (frameCount % 2 === 0) {
+        if (!c.curAxes) c.curAxes = {};
         const fvsOpts = [];
 
-        // Safely apply only the axes supported by the current font, clamping to min/max
-        if (fontConf.axes.wght) {
-          const w = Math.max(fontConf.axes.wght.min, Math.min(fontConf.axes.wght.max, cur.wght));
-          fvsOpts.push(`'wght' ${w.toFixed(0)}`);
-        }
-        if (fontConf.axes.wdth) {
-          const w = Math.max(fontConf.axes.wdth.min, Math.min(fontConf.axes.wdth.max, cur.wdth));
-          fvsOpts.push(`'wdth' ${w.toFixed(1)}`);
-        }
-        if (fontConf.axes.GRAD) {
-          const w = Math.max(fontConf.axes.GRAD.min, Math.min(fontConf.axes.GRAD.max, cur.GRAD));
-          fvsOpts.push(`'GRAD' ${w.toFixed(1)}`);
-        }
-        if (fontConf.axes.slnt) {
-          const w = Math.max(fontConf.axes.slnt.min, Math.min(fontConf.axes.slnt.max, cur.slnt));
-          fvsOpts.push(`'slnt' ${w.toFixed(2)}`);
-        }
-        if (fontConf.axes.XOPQ) {
-          const w = Math.max(fontConf.axes.XOPQ.min, Math.min(fontConf.axes.XOPQ.max, cur.XOPQ));
-          fvsOpts.push(`'XOPQ' ${w.toFixed(1)}`);
-        }
-        if (fontConf.axes.YOPQ) {
-          const w = Math.max(fontConf.axes.YOPQ.min, Math.min(fontConf.axes.YOPQ.max, cur.YOPQ));
-          fvsOpts.push(`'YOPQ' ${w.toFixed(1)}`);
-        }
-        if (fontConf.axes.XTRA) {
-          const w = Math.max(fontConf.axes.XTRA.min, Math.min(fontConf.axes.XTRA.max, cur.XTRA));
-          fvsOpts.push(`'XTRA' ${w.toFixed(0)}`);
-        }
-        if (fontConf.axes.opsz) {
-          const w = Math.max(fontConf.axes.opsz.min, Math.min(fontConf.axes.opsz.max, cur.opsz));
-          fvsOpts.push(`'opsz' ${w.toFixed(1)}`);
-        }
+        Object.entries(fontConf.axes).forEach(([name, bounds]) => {
+          // 惰性初始化：第一次使用該軸時從 default 值開始
+          if (c.curAxes[name] === undefined) c.curAxes[name] = bounds.default;
+
+          const range = bounds.max - bounds.min;
+          // 閒置呼吸：在 default ±15% range 之間振盪
+          const idleVal = bounds.default + breath * range * 0.15;
+          // 滑鼠靠近：往 max 推進
+          const targetVal = idleVal + power * (bounds.max - idleVal);
+          const clamped = Math.max(bounds.min, Math.min(bounds.max, targetVal));
+
+          c.curAxes[name] = lerp(c.curAxes[name], clamped, LF);
+          fvsOpts.push(`'${name}' ${c.curAxes[name].toFixed(2)}`);
+        });
 
         el.style.fontVariationSettings = fvsOpts.join(', ');
       }
