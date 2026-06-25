@@ -9,11 +9,11 @@ export const appConfig = {
   // --- 排列與密度設定 (ScatterContainer) ---
   scatter: {
     // 全域顯示倍率：放大/縮小所有散落字的基準尺寸
-    displayScale: 2,
+    displayScale: 1,
 
     // 密度補償倍率：字放大時同步提高排列密度，避免空隙被拉大
     // 1 = 不補償；通常可設為與 displayScale 相同
-    densityScale: 2,
+    densityScale: 1.15,
 
     // 響應式補正：避免手機上「又大又密」導致整坨重疊
     responsive: {
