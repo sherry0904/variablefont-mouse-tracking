@@ -1,6 +1,7 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { fontsDatabase, activeFontId, isDevMode } from '../config/fontConfig';
+import { appConfig } from '../config/appConfig';
 
 // 依 dev 模式過濾可見字型
 const visibleFonts = computed(() =>
@@ -11,6 +12,27 @@ const visibleFonts = computed(() =>
 
 const isOpen = ref(false);
 const isFontSelectorOpen = ref(false);
+const axisTestMode = ref(appConfig.physics.axisTestMode === true);
+const axisTestAxes = ref(
+  Array.isArray(appConfig.physics.axisTestAxes)
+    ? [...appConfig.physics.axisTestAxes]
+    : Object.keys(fontsDatabase[activeFontId.value].axes)
+);
+
+const availableAxes = computed(() => Object.keys(fontsDatabase[activeFontId.value].axes));
+
+const syncAxisTestConfig = () => {
+  appConfig.physics.axisTestMode = axisTestMode.value;
+  appConfig.physics.axisTestAxes = [...axisTestAxes.value];
+};
+
+const toggleAxis = (axis) => {
+  if (axisTestAxes.value.includes(axis)) {
+    axisTestAxes.value = axisTestAxes.value.filter((a) => a !== axis);
+    return;
+  }
+  axisTestAxes.value = [...axisTestAxes.value, axis];
+};
 
 const togglePanel = () => {
   isOpen.value = !isOpen.value;
@@ -26,6 +48,15 @@ const selectFont = (id) => {
   activeFontId.value = id;
   isFontSelectorOpen.value = false;
 };
+
+watch(axisTestMode, syncAxisTestConfig);
+watch(axisTestAxes, syncAxisTestConfig, { deep: true });
+
+watch(activeFontId, () => {
+  const allowed = new Set(availableAxes.value);
+  axisTestAxes.value = axisTestAxes.value.filter((axis) => allowed.has(axis));
+  syncAxisTestConfig();
+});
 
 // Close dropdown when clicking outside
 const handleClickOutside = (e) => {
@@ -94,6 +125,28 @@ onUnmounted(() => {
             </div>
           </transition>
         </div>
+      </div>
+
+      <div class="control-group">
+        <label>Test Controls</label>
+        <div class="switch-row">
+          <span class="switch-label">Axis Test Mode</span>
+          <button class="chip-switch" :class="{ 'is-on': axisTestMode }" @click="axisTestMode = !axisTestMode">
+            {{ axisTestMode ? 'ON' : 'OFF' }}
+          </button>
+        </div>
+        <div class="axis-toggles">
+          <button
+            v-for="axis in availableAxes"
+            :key="axis"
+            class="axis-toggle"
+            :class="{ 'is-active': axisTestAxes.includes(axis) }"
+            @click="toggleAxis(axis)"
+          >
+            {{ axis }}
+          </button>
+        </div>
+        <p class="helper-text">測試模式開啟時，只有亮起來的軸會跟滑鼠變化。</p>
       </div>
 
       <div class="axes-info">
@@ -222,6 +275,70 @@ onUnmounted(() => {
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.switch-label {
+  font-size: 13px;
+  color: #d1d1d6;
+  font-weight: 500;
+}
+
+.chip-switch {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: #b3b3b8;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chip-switch.is-on {
+  background: rgba(255, 141, 161, 0.16);
+  border-color: rgba(255, 141, 161, 0.6);
+  color: #ff8da1;
+}
+
+.axis-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.axis-toggle {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+  color: #9f9fa5;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.axis-toggle.is-active {
+  background: rgba(255, 141, 161, 0.14);
+  border-color: rgba(255, 141, 161, 0.55);
+  color: #ff8da1;
+}
+
+.helper-text {
+  margin: 10px 2px 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: #8a8a90;
 }
 
 .select-trigger {

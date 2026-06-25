@@ -24,6 +24,12 @@ export const appConfig = {
 
   // --- 互動與物理特效設定 (useMouseTracker) ---
   physics: {
+    // 測試模式：只看變化軸，先暫停滑鼠造成的位移/旋轉放大感
+    axisTestMode: true,
+    // 測試模式下允許反應的軸；未列出的軸會固定在 default。
+    // 先只開字重，避免 HIGH / wdth 讓字看起來變大。
+    axisTestAxes: ['wght'],
+
     // 滑鼠互動的影響半徑 (數字越大，受影響的字母範圍越廣)
     interactionRadius: 500,
 
@@ -51,7 +57,10 @@ export const appConfig = {
       breathingWeight: 150,
       breathingWidth: 15,
       // 呼吸變化速度
-      breathingSpeed: 0.7
+      breathingSpeed: 0.7,
+      // 閒置時字型軸呼吸的幅度 (佔該軸範圍的比例)。
+      // 數字越小，預設散落狀態越貼近細／矮的基準，滑鼠滑過時的對比越顯著。
+      axisBreathingScale: 0
     }
   }
 };

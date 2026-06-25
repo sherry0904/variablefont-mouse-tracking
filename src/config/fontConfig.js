@@ -18,9 +18,11 @@ export const fontsDatabase = {
     family: "'VariablemusakoVF', sans-serif",
     chars: ['A','D','F','N','O','T','Y','a','d','f','n','o','t','y'],
     axes: {
-      wght: { min: 100, max: 900, default: 100 }, // 字重
-      wdth: { min: 1,   max: 9,   default: 1   }, // 字寬
-      HIGH: { min: 1,   max: 9,   default: 9   }  // 字高 (特有變化軸)
+      // pull：滑鼠靠近時往 max 推進的強度 (0~1)。字寬刻意收斂，讓字高與字重主導，
+      // 滑鼠靠近時字會明顯「抽高變粗」而非等比放大，凸顯字高變化。
+      wght: { min: 100, max: 900, default: 100, pull: 1    }, // 字重
+      wdth: { min: 1,   max: 9,   default: 1,   pull: 0.3  }, // 字寬 (收斂，維持窄身)
+      HIGH: { min: 1,   max: 9,   default: 1,   pull: 1    }  // 字高 (特有變化軸，衝滿)
     }
   },
   'roboto-flex': {

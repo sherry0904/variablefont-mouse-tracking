@@ -100,6 +100,8 @@ export function useMouseTracker() {
     const LF = 1 - Math.pow(1 - 0.85, dt * 60);
     const pConfig = appConfig.physics;
     const RADIUS = pConfig.interactionRadius;
+    const axisTestMode = pConfig.axisTestMode === true;
+    const axisTestAxes = Array.isArray(pConfig.axisTestAxes) ? pConfig.axisTestAxes : null;
     frameCount++;
 
     const touchTargetIntensity = activeTouchPointerId !== null ? 1 : 0;
@@ -124,9 +126,9 @@ export function useMouseTracker() {
       const idleTy  = Math.sin(t * pConfig.idle.movementSpeedY + c.seed) * pConfig.idle.movementAmplitudeY;
       const idleRot = Math.sin(t * pConfig.idle.rotationSpeed + c.seed * 2.1) * pConfig.idle.rotationAmplitude;
 
-      const targetTx = idleTx + dx * magneticPower * pConfig.magneticForce;
-      const targetTy = idleTy + dy * magneticPower * pConfig.magneticForce;
-      const tRot     = idleRot + (dx + dy) * 0.12 * magneticPower;
+      const targetTx = axisTestMode ? 0 : idleTx + dx * magneticPower * pConfig.magneticForce;
+      const targetTy = axisTestMode ? 0 : idleTy + dy * magneticPower * pConfig.magneticForce;
+      const tRot     = axisTestMode ? 0 : idleRot + (dx + dy) * 0.12 * magneticPower;
 
       const cur = c.cur;
       cur.rot = lerp(cur.rot, tRot, LF);
@@ -151,10 +153,15 @@ export function useMouseTracker() {
           if (c.curAxes[name] === undefined) c.curAxes[name] = bounds.default;
 
           const range = bounds.max - bounds.min;
-          // 閒置呼吸：在 default ±15% range 之間振盪
-          const idleVal = bounds.default + breath * range * 0.15;
-          // 滑鼠靠近：往 max 推進
-            const targetVal = idleVal + magneticPower * (bounds.max - idleVal);
+          // 閒置呼吸：在 default 附近做小幅振盪，預設維持貼近細／矮的基準
+          const idleVal = bounds.default + breath * range * pConfig.idle.axisBreathingScale;
+          // 滑鼠靠近：往 max 推進。各軸可用 pull (0~1) 控制推進強度，
+          // 讓某些軸衝滿、某些軸收斂，凸顯想強調的變化（預設 1 = 完全推到 max）
+          const pull = bounds.pull ?? 1;
+          const isAxisAllowed = !axisTestMode || !axisTestAxes || axisTestAxes.includes(name);
+          const targetVal = isAxisAllowed
+            ? idleVal + magneticPower * pull * (bounds.max - idleVal)
+            : bounds.default;
           const clamped = Math.max(bounds.min, Math.min(bounds.max, targetVal));
 
           c.curAxes[name] = lerp(c.curAxes[name], clamped, LF);
