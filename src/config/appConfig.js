@@ -25,7 +25,7 @@ export const appConfig = {
   // --- 互動與物理特效設定 (useMouseTracker) ---
   physics: {
     // 測試模式：只看變化軸，先暫停滑鼠造成的位移/旋轉放大感
-    axisTestMode: true,
+    axisTestMode: false,
     // 測試模式下允許反應的軸；未列出的軸會固定在 default。
     // 先只開字重，避免 HIGH / wdth 讓字看起來變大。
     axisTestAxes: ['wght'],

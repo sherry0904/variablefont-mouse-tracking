@@ -12,12 +12,32 @@ const visibleFonts = computed(() =>
 
 const isOpen = ref(false);
 const isFontSelectorOpen = ref(false);
+const panelRef = ref(null);
+const panelPos = ref({ x: null, y: null });
+const isDragging = ref(false);
 const axisTestMode = ref(appConfig.physics.axisTestMode === true);
 const axisTestAxes = ref(
   Array.isArray(appConfig.physics.axisTestAxes)
     ? [...appConfig.physics.axisTestAxes]
     : Object.keys(fontsDatabase[activeFontId.value].axes)
 );
+
+let dragPointerId = null;
+let dragOffsetX = 0;
+let dragOffsetY = 0;
+
+const panelStyle = computed(() => {
+  if (panelPos.value.x === null || panelPos.value.y === null) {
+    return {};
+  }
+
+  return {
+    left: `${panelPos.value.x}px`,
+    top: `${panelPos.value.y}px`,
+    right: 'auto',
+    bottom: 'auto',
+  };
+});
 
 const availableAxes = computed(() => Object.keys(fontsDatabase[activeFontId.value].axes));
 
@@ -49,6 +69,52 @@ const selectFont = (id) => {
   isFontSelectorOpen.value = false;
 };
 
+const clampPanelPosition = (x, y) => {
+  if (!panelRef.value) return { x, y };
+
+  const rect = panelRef.value.getBoundingClientRect();
+  const margin = 12;
+  const maxX = Math.max(margin, window.innerWidth - rect.width - margin);
+  const maxY = Math.max(margin, window.innerHeight - rect.height - margin);
+
+  return {
+    x: Math.min(Math.max(x, margin), maxX),
+    y: Math.min(Math.max(y, margin), maxY),
+  };
+};
+
+const startPanelDrag = (e) => {
+  if (!panelRef.value) return;
+  if (e.button !== undefined && e.button !== 0) return;
+  if (e.target.closest('.close-btn')) return;
+
+  const rect = panelRef.value.getBoundingClientRect();
+  if (panelPos.value.x === null || panelPos.value.y === null) {
+    panelPos.value = { x: rect.left, y: rect.top };
+  }
+
+  dragPointerId = e.pointerId ?? null;
+  dragOffsetX = e.clientX - rect.left;
+  dragOffsetY = e.clientY - rect.top;
+  isDragging.value = true;
+};
+
+const onPanelDragMove = (e) => {
+  if (!isDragging.value) return;
+  if (dragPointerId !== null && e.pointerId !== dragPointerId) return;
+
+  const next = clampPanelPosition(e.clientX - dragOffsetX, e.clientY - dragOffsetY);
+  panelPos.value = next;
+};
+
+const stopPanelDrag = (e) => {
+  if (!isDragging.value) return;
+  if (dragPointerId !== null && e && e.pointerId !== dragPointerId) return;
+
+  isDragging.value = false;
+  dragPointerId = null;
+};
+
 watch(axisTestMode, syncAxisTestConfig);
 watch(axisTestAxes, syncAxisTestConfig, { deep: true });
 
@@ -65,12 +131,25 @@ const handleClickOutside = (e) => {
   }
 };
 
+const handleWindowResize = () => {
+  if (panelPos.value.x === null || panelPos.value.y === null) return;
+  panelPos.value = clampPanelPosition(panelPos.value.x, panelPos.value.y);
+};
+
 onMounted(() => {
   window.addEventListener('click', handleClickOutside);
+  window.addEventListener('pointermove', onPanelDragMove, { passive: true });
+  window.addEventListener('pointerup', stopPanelDrag, { passive: true });
+  window.addEventListener('pointercancel', stopPanelDrag, { passive: true });
+  window.addEventListener('resize', handleWindowResize);
 });
 
 onUnmounted(() => {
   window.removeEventListener('click', handleClickOutside);
+  window.removeEventListener('pointermove', onPanelDragMove);
+  window.removeEventListener('pointerup', stopPanelDrag);
+  window.removeEventListener('pointercancel', stopPanelDrag);
+  window.removeEventListener('resize', handleWindowResize);
 });
 </script>
 
@@ -90,8 +169,8 @@ onUnmounted(() => {
   </div>
 
   <transition name="fade-slide">
-    <div class="debug-panel" v-if="isOpen">
-      <div class="header">
+    <div class="debug-panel" :class="{ 'is-dragging': isDragging }" :style="panelStyle" ref="panelRef" v-if="isOpen">
+      <div class="header drag-handle" @pointerdown="startPanelDrag">
         <h3>Typography Lab</h3>
         <button class="close-btn" @click="togglePanel">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -235,6 +314,16 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
+}
+
+.drag-handle {
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.debug-panel.is-dragging .drag-handle {
+  cursor: grabbing;
 }
 
 .header h3 {
