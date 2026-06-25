@@ -15,6 +15,16 @@ export const appConfig = {
     // 1 = 不補償；通常可設為與 displayScale 相同
     densityScale: 2,
 
+    // 響應式補正：避免手機上「又大又密」導致整坨重疊
+    responsive: {
+      mobileMaxWidth: 768,
+      tabletMaxWidth: 1024,
+      mobileDisplayScale: 0.48,
+      mobileDensityScale: 0.42,
+      tabletDisplayScale: 0.72,
+      tabletDensityScale: 0.7
+    },
+
     // 畫面上最多生成的字母數量 (數字越大越密，但也更吃效能)
     targetCount: 200,
 

@@ -7,6 +7,24 @@ import { fontsDatabase, activeFontId } from '../config/fontConfig';
 
 const containerRef = ref(null);
 
+const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1440;
+const responsive = appConfig.scatter.responsive || {};
+
+const isMobile = viewportWidth <= (responsive.mobileMaxWidth || 768);
+const isTablet = !isMobile && viewportWidth <= (responsive.tabletMaxWidth || 1024);
+
+const responsiveDisplayScale = isMobile
+  ? (responsive.mobileDisplayScale || 1)
+  : isTablet
+    ? (responsive.tabletDisplayScale || 1)
+    : 1;
+
+const responsiveDensityScale = isMobile
+  ? (responsive.mobileDensityScale || 1)
+  : isTablet
+    ? (responsive.tabletDensityScale || 1)
+    : 1;
+
 // 優先使用字型自訂的字元子集，否則回退到通用預設集
 const getChars = () => fontsDatabase[activeFontId.value].chars || appConfig.defaultChars;
 
@@ -14,7 +32,7 @@ const getChars = () => fontsDatabase[activeFontId.value].chars || appConfig.defa
 function randomSize() {
   const r = Math.random();
   const s = appConfig.scatter.size;
-  const displayScale = appConfig.scatter.displayScale || 1;
+  const displayScale = (appConfig.scatter.displayScale || 1) * responsiveDisplayScale;
   
   if (r < s.small.chance) 
     return (s.small.min + Math.random() * (s.small.max - s.small.min)) * displayScale;
@@ -31,7 +49,7 @@ const placed = [];
 const items  = [];
 let   idStr  = 0;
 
-const DENSITY_SCALE = appConfig.scatter.densityScale || 1;
+const DENSITY_SCALE = (appConfig.scatter.densityScale || 1) * responsiveDensityScale;
 const MIN_DIST_REM = appConfig.scatter.minDistRem / DENSITY_SCALE;
 
 function tooClose(x, y, sz) {
