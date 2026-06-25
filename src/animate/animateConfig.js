@@ -28,7 +28,7 @@ export const animateConfig = {
 
   physics: {
     // 互動半徑 (px)
-    interactionRadius: 400,
+    interactionRadius: 550,
 
     // 磁力位移保留，但力道調小避免搶過軸變化的視覺
     magneticForce: 0.25,
@@ -36,7 +36,7 @@ export const animateConfig = {
     friction: 0.85,
 
     // 字型軸互動強度：控制滑鼠靠近時各個字母被推往 active 值的力道
-    axisMagneticStrength: 0.9,
+    axisMagneticStrength: 1.0,
 
     // 閒置漂浮（保留生命感，但幅度縮小）
     idle: {

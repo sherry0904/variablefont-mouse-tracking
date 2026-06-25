@@ -153,7 +153,8 @@ export function useAnimateTracker() {
       const dy = mouseY - c.baseY;
       const dist = Math.sqrt(dx * dx + dy * dy);
       const norm = Math.min(dist / RADIUS, 1);
-      const power = Math.pow(1 - norm, 1.8);
+      // 指數 0.6：衰退更平緩，讓半徑邊緣的字也有明顯反應
+      const power = Math.pow(1 - norm, 0.6);
       const magneticPower = power * (activeTouchPointerId !== null || touchDragIntensity > 0 ? touchDragIntensity : 1);
 
       // --- 閒置漂浮（小幅，不搶軸變化的鏡頭）---
