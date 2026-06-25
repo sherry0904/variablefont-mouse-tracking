@@ -10,7 +10,6 @@ export function useMouseTracker() {
   let touchY = -9999;
   let resizeTimeout;
   let resizeHandler = null;
-  let frameCount = 0;
   let activeTouchPointerId = null;
   let touchDragIntensity = 0;
 
@@ -102,7 +101,6 @@ export function useMouseTracker() {
     const RADIUS = pConfig.interactionRadius;
     const axisTestMode = pConfig.axisTestMode === true;
     const axisTestAxes = Array.isArray(pConfig.axisTestAxes) ? pConfig.axisTestAxes : null;
-    frameCount++;
 
     const touchTargetIntensity = activeTouchPointerId !== null ? 1 : 0;
     const touchBlend = touchTargetIntensity ? 0.22 : 0.04;
@@ -143,33 +141,31 @@ export function useMouseTracker() {
       const el = c.element;
       el.style.transform = `translate(calc(-50% + ${cur.tx.toFixed(1)}px), calc(-50% + ${cur.ty.toFixed(1)}px)) rotate(${cur.rot.toFixed(2)}deg)`;
 
-      // --- 動態字型變化軸 (每 2 frame 更新一次以降低 GPU 負擔) ---
-      if (frameCount % 2 === 0) {
-        if (!c.curAxes) c.curAxes = {};
-        const fvsOpts = [];
+      // --- 動態字型變化軸 (每 frame 更新，避免視覺上「一格一格」) ---
+      if (!c.curAxes) c.curAxes = {};
+      const fvsOpts = [];
 
-        Object.entries(fontConf.axes).forEach(([name, bounds]) => {
-          // 惰性初始化：第一次使用該軸時從 default 值開始
-          if (c.curAxes[name] === undefined) c.curAxes[name] = bounds.default;
+      Object.entries(fontConf.axes).forEach(([name, bounds]) => {
+        // 惰性初始化：第一次使用該軸時從 default 值開始
+        if (c.curAxes[name] === undefined) c.curAxes[name] = bounds.default;
 
-          const range = bounds.max - bounds.min;
-          // 閒置呼吸：在 default 附近做小幅振盪，預設維持貼近細／矮的基準
-          const idleVal = bounds.default + breath * range * pConfig.idle.axisBreathingScale;
-          // 滑鼠靠近：往 max 推進。各軸可用 pull (0~1) 控制推進強度，
-          // 讓某些軸衝滿、某些軸收斂，凸顯想強調的變化（預設 1 = 完全推到 max）
-          const pull = bounds.pull ?? 1;
-          const isAxisAllowed = !axisTestMode || !axisTestAxes || axisTestAxes.includes(name);
-          const targetVal = isAxisAllowed
-            ? idleVal + magneticPower * pull * (bounds.max - idleVal)
-            : bounds.default;
-          const clamped = Math.max(bounds.min, Math.min(bounds.max, targetVal));
+        const range = bounds.max - bounds.min;
+        // 閒置呼吸：在 default 附近做小幅振盪，預設維持貼近細／矮的基準
+        const idleVal = bounds.default + breath * range * pConfig.idle.axisBreathingScale;
+        // 滑鼠靠近：往 max 推進。各軸可用 pull (0~1) 控制推進強度，
+        // 讓某些軸衝滿、某些軸收斂，凸顯想強調的變化（預設 1 = 完全推到 max）
+        const pull = bounds.pull ?? 1;
+        const isAxisAllowed = !axisTestMode || !axisTestAxes || axisTestAxes.includes(name);
+        const targetVal = isAxisAllowed
+          ? idleVal + magneticPower * pull * (bounds.max - idleVal)
+          : bounds.default;
+        const clamped = Math.max(bounds.min, Math.min(bounds.max, targetVal));
 
-          c.curAxes[name] = lerp(c.curAxes[name], clamped, LF);
-          fvsOpts.push(`'${name}' ${c.curAxes[name].toFixed(2)}`);
-        });
+        c.curAxes[name] = lerp(c.curAxes[name], clamped, LF);
+        fvsOpts.push(`'${name}' ${c.curAxes[name].toFixed(3)}`);
+      });
 
-        el.style.fontVariationSettings = fvsOpts.join(', ');
-      }
+      el.style.fontVariationSettings = fvsOpts.join(', ');
     });
 
     animationFrameId = requestAnimationFrame(tick);
