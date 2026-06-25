@@ -8,11 +8,18 @@ export const appConfig = {
 
   // --- 排列與密度設定 (ScatterContainer) ---
   scatter: {
+    // 全域顯示倍率：放大/縮小所有散落字的基準尺寸
+    displayScale: 2,
+
+    // 密度補償倍率：字放大時同步提高排列密度，避免空隙被拉大
+    // 1 = 不補償；通常可設為與 displayScale 相同
+    densityScale: 2,
+
     // 畫面上最多生成的字母數量 (數字越大越密，但也更吃效能)
     targetCount: 200,
 
     // 字母間防重疊的最小安全距離係數 (越小字母會排得越緊甚至重疊，建議 0.25 ~ 0.4 之間)
-    minDistRem: 0.28,
+    minDistRem: 0.3,
 
     // 字母隨機尺寸的設定 (rem)
     size: {

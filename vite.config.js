@@ -10,5 +10,16 @@ export default defineConfig(({ mode }) => {
     // 優先使用 VITE_BASE_PATH，若無則預設為 '/'
     base: env.VITE_BASE_PATH || '/',
     plugins: [vue()],
+    // 綁定所有網卡，讓同一個 Wi-Fi 的手機可透過區網 IP 存取
+    server: {
+      host: '0.0.0.0',
+      port: 5173,
+      strictPort: true,
+    },
+    preview: {
+      host: '0.0.0.0',
+      port: 5173,
+      strictPort: true,
+    },
   }
 })

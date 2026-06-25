@@ -14,13 +14,14 @@ const getChars = () => fontsDatabase[activeFontId.value].chars || appConfig.defa
 function randomSize() {
   const r = Math.random();
   const s = appConfig.scatter.size;
+  const displayScale = appConfig.scatter.displayScale || 1;
   
   if (r < s.small.chance) 
-    return s.small.min + Math.random() * (s.small.max - s.small.min);
+    return (s.small.min + Math.random() * (s.small.max - s.small.min)) * displayScale;
   if (r < s.small.chance + s.medium.chance) 
-    return s.medium.min + Math.random() * (s.medium.max - s.medium.min);
+    return (s.medium.min + Math.random() * (s.medium.max - s.medium.min)) * displayScale;
   
-  return s.large.min + Math.random() * (s.large.max - s.large.min);
+  return (s.large.min + Math.random() * (s.large.max - s.large.min)) * displayScale;
 }
 
 // Pseudo-Poisson disk: generate candidate positions and reject those that are
@@ -30,7 +31,8 @@ const placed = [];
 const items  = [];
 let   idStr  = 0;
 
-const MIN_DIST_REM = appConfig.scatter.minDistRem;
+const DENSITY_SCALE = appConfig.scatter.densityScale || 1;
+const MIN_DIST_REM = appConfig.scatter.minDistRem / DENSITY_SCALE;
 
 function tooClose(x, y, sz) {
   for (const p of placed) {
@@ -45,7 +47,7 @@ function tooClose(x, y, sz) {
   return false;
 }
 
-const TARGET = appConfig.scatter.targetCount;
+const TARGET = Math.max(1, Math.round(appConfig.scatter.targetCount * DENSITY_SCALE));
 const MAX_ATTEMPTS = 50000;
 let attempts = 0;
 
