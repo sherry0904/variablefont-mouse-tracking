@@ -15,6 +15,7 @@ import DebugPanel from './components/DebugPanel.vue';
   position: relative;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 </style>

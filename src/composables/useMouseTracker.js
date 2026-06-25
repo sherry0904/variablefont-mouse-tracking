@@ -6,8 +6,13 @@ export function useMouseTracker() {
   let animationFrameId = null;
   let mouseX = -9999;
   let mouseY = -9999;
+  let touchX = -9999;
+  let touchY = -9999;
   let resizeTimeout;
+  let resizeHandler = null;
   let frameCount = 0;
+  let activeTouchPointerId = null;
+  let touchDragIntensity = 0;
 
   const calculateBounds = (container) => {
     elementsCache = [];
@@ -44,8 +49,48 @@ export function useMouseTracker() {
   };
 
   const onMouseMove = (e) => {
+    if (e.pointerType === 'touch') {
+      if (activeTouchPointerId !== e.pointerId) return;
+      touchX = e.clientX;
+      touchY = e.clientY;
+      mouseX = touchX;
+      mouseY = touchY;
+      return;
+    }
+
     mouseX = e.clientX;
     mouseY = e.clientY;
+  };
+
+  const onPointerLeave = () => {
+    if (activeTouchPointerId !== null) return;
+    mouseX = -9999;
+    mouseY = -9999;
+  };
+
+  const onPointerDown = (e) => {
+    if (e.pointerType !== 'touch') {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+      return;
+    }
+
+    if (activeTouchPointerId !== null) return;
+    activeTouchPointerId = e.pointerId;
+    touchX = e.clientX;
+    touchY = e.clientY;
+    mouseX = touchX;
+    mouseY = touchY;
+  };
+
+  const onPointerUpOrCancel = (e) => {
+    if (e.pointerType !== 'touch') return;
+    if (activeTouchPointerId !== e.pointerId) return;
+
+    activeTouchPointerId = null;
+    // Keep the last touch position, then gradually fade magnetic influence.
+    mouseX = touchX;
+    mouseY = touchY;
   };
 
   const tick = (timestamp) => {
@@ -57,6 +102,10 @@ export function useMouseTracker() {
     const RADIUS = pConfig.interactionRadius;
     frameCount++;
 
+    const touchTargetIntensity = activeTouchPointerId !== null ? 1 : 0;
+    const touchBlend = touchTargetIntensity ? 0.22 : 0.04;
+    touchDragIntensity = lerp(touchDragIntensity, touchTargetIntensity, touchBlend);
+
     const fontConf = fontsDatabase[activeFontId.value];
 
     elementsCache.forEach((c) => {
@@ -65,6 +114,7 @@ export function useMouseTracker() {
       const dist = Math.sqrt(dx * dx + dy * dy);
       const norm = Math.min(dist / RADIUS, 1);
       const power = Math.pow(1 - norm, 1.8);
+      const magneticPower = power * (activeTouchPointerId !== null || touchDragIntensity > 0 ? touchDragIntensity : 1);
 
       // --- Idle oscillation (共用於位移與字型變化軸) ---
       const breath = Math.sin(t * pConfig.idle.breathingSpeed + c.seed); // -1 ~ 1
@@ -74,9 +124,9 @@ export function useMouseTracker() {
       const idleTy  = Math.sin(t * pConfig.idle.movementSpeedY + c.seed) * pConfig.idle.movementAmplitudeY;
       const idleRot = Math.sin(t * pConfig.idle.rotationSpeed + c.seed * 2.1) * pConfig.idle.rotationAmplitude;
 
-      const targetTx = idleTx + dx * power * pConfig.magneticForce;
-      const targetTy = idleTy + dy * power * pConfig.magneticForce;
-      const tRot     = idleRot + (dx + dy) * 0.12 * power;
+      const targetTx = idleTx + dx * magneticPower * pConfig.magneticForce;
+      const targetTy = idleTy + dy * magneticPower * pConfig.magneticForce;
+      const tRot     = idleRot + (dx + dy) * 0.12 * magneticPower;
 
       const cur = c.cur;
       cur.rot = lerp(cur.rot, tRot, LF);
@@ -104,7 +154,7 @@ export function useMouseTracker() {
           // 閒置呼吸：在 default ±15% range 之間振盪
           const idleVal = bounds.default + breath * range * 0.15;
           // 滑鼠靠近：往 max 推進
-          const targetVal = idleVal + power * (bounds.max - idleVal);
+            const targetVal = idleVal + magneticPower * (bounds.max - idleVal);
           const clamped = Math.max(bounds.min, Math.min(bounds.max, targetVal));
 
           c.curAxes[name] = lerp(c.curAxes[name], clamped, LF);
@@ -122,18 +172,29 @@ export function useMouseTracker() {
     // Small delay to ensure DOM is fully rendered
     setTimeout(() => {
       calculateBounds(container);
-      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('pointermove', onMouseMove, { passive: true });
+        window.addEventListener('pointerdown', onPointerDown, { passive: true });
+        window.addEventListener('pointerup', onPointerUpOrCancel, { passive: true });
+        window.addEventListener('pointercancel', onPointerUpOrCancel, { passive: true });
+      window.addEventListener('pointerleave', onPointerLeave);
       animationFrameId = requestAnimationFrame(tick);
     }, 150);
 
-    window.addEventListener('resize', () => {
+    resizeHandler = () => {
       clearTimeout(resizeTimeout);
       resizeTimeout = setTimeout(() => calculateBounds(container), 200);
-    });
+    };
+
+    window.addEventListener('resize', resizeHandler);
   };
 
   const destroyTracker = () => {
-    window.removeEventListener('mousemove', onMouseMove);
+    window.removeEventListener('pointermove', onMouseMove);
+    window.removeEventListener('pointerdown', onPointerDown);
+    window.removeEventListener('pointerup', onPointerUpOrCancel);
+    window.removeEventListener('pointercancel', onPointerUpOrCancel);
+    window.removeEventListener('pointerleave', onPointerLeave);
+    if (resizeHandler) window.removeEventListener('resize', resizeHandler);
     cancelAnimationFrame(animationFrameId);
   };
 

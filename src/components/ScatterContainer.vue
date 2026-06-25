@@ -107,8 +107,10 @@ onBeforeUnmount(() => destroyTracker());
 .scatter-container {
   width: 100%;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   background-color: #FFF9F2;
   position: relative;
+  touch-action: none;
 }
 </style>

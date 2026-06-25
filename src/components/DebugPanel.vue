@@ -385,4 +385,44 @@ onUnmounted(() => {
 }
 .axis-bounds.min { text-align: right; }
 .axis-bounds.max { text-align: left; }
+
+@media (max-width: 1024px) {
+  .debug-toggle-btn {
+    bottom: 20px;
+    right: 20px;
+  }
+
+  .debug-panel {
+    bottom: 20px;
+    right: 20px;
+    width: min(360px, 92vw);
+    max-height: 72dvh;
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .debug-toggle-btn {
+    width: 46px;
+    height: 46px;
+    bottom: 14px;
+    right: 14px;
+  }
+
+  .debug-panel {
+    bottom: 14px;
+    right: 14px;
+    width: calc(100vw - 28px);
+    padding: 18px;
+    border-radius: 16px;
+  }
+
+  .header {
+    margin-bottom: 16px;
+  }
+
+  .control-group {
+    margin-bottom: 16px;
+  }
+}
 </style>
