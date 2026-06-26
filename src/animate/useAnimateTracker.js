@@ -142,7 +142,8 @@ export function useAnimateTracker() {
 
     const LF = 1 - Math.pow(1 - 0.85, dt * 60);
     const pConfig = animateConfig.physics;
-    const RADIUS = pConfig.interactionRadius;
+    // viewport 相對半徑：手機 390px × 0.38 ≈ 148px，桌機 1440px × 0.38 ≈ 547px
+    const RADIUS = window.innerWidth * pConfig.interactionRadiusVw;
 
     const touchTargetIntensity = activeTouchPointerId !== null ? 1 : 0;
     const touchBlend = touchTargetIntensity ? 0.22 : 0.04;

@@ -27,8 +27,10 @@ export const animateConfig = {
   },
 
   physics: {
-    // 互動半徑 (px)
-    interactionRadius: 550,
+    // 互動半徑：用 viewport 寬度的比例來算，避免手機上半徑比整個螢幕還大
+    // 最終 px = window.innerWidth * interactionRadiusVw
+    // 桌機 1440px × 0.38 ≈ 547px；手機 390px × 0.38 ≈ 148px
+    interactionRadiusVw: 0.38,
 
     // 磁力位移保留，但力道調小避免搶過軸變化的視覺
     magneticForce: 0.25,
