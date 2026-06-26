@@ -1,12 +1,13 @@
 <script setup>
 import ScatterContainer from './components/ScatterContainer.vue';
 import DebugPanel from './components/DebugPanel.vue';
+import { isDevMode } from './config/fontConfig';
 </script>
 
 <template>
   <div class="app-wrapper">
     <ScatterContainer />
-    <DebugPanel />
+    <DebugPanel v-if="isDevMode" />
   </div>
 </template>
 
